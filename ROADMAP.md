@@ -12,12 +12,22 @@ From the rollout plan (`CLI-ROLLOUT.md` on the dev box). As of 5 November 2026:
 | Wave | What | Done | Next |
 |---|---|---|---|
 | A | This repo: the spec, `reference/` foundations, the schemas, the runner | all (runner 0.1.0) | |
-| B | Alignment: health, exit codes, `serve`, `status --json`, `logs`, units | Paddock (0.80.0), Hallway (0.11.0), Local Review (0.14.0), BragDoc (0.3.0) | Managers in F, Localidraw in E |
-| C | Paddock's busy check and `update`; then `update` into `reference/` | C1 busy (0.81.0), C2 `update` (0.82.0), C4 `reference/` update and service, runner update checks, SPEC 0.2 | C3: Ed dogfoods `paddock update` |
-| D | busy (a), then `update` and `doctor` (b), from the reference | D1a Hallway (0.12.0), D2a Local Review (0.15.0), D3a BragDoc (0.4.0) | D1b, D2b, D3b |
-| E | Localidraw | E1 commands and SIGTERM (0.5.0) | E2 `service`, E3 busy and `update` |
+| B | Alignment: health, exit codes, `serve`, `status --json`, `logs`, units | Paddock (0.80.0), Hallway (0.11.0), Local Review (0.14.0), BragDoc (0.3.0) | Managers in F |
+| C | Paddock's busy check and `update`; then `update` into `reference/` | C1 busy (0.81.0), C2 `update` (0.82.0), C4 `reference/` update and service, runner update checks, SPEC 0.2 (runner 0.2.0) | C3: Ed dogfoods `paddock update` |
+| D | busy (a), then `update` and `doctor` (b), from the reference | D1a/D1b Hallway, D2a/D2b Local Review, D3a/D3b BragDoc | |
+| E | Localidraw | E1 commands and SIGTERM (0.5.0), E2 `service` (0.6.0), E3 busy, `update`, `doctor` | |
 | F | Managers | | F1 to F4 |
-| G | `doctor` everywhere, docs, a conformance sweep, SPEC 1.0 | | |
+| G | `doctor` everywhere, the §1 "should"s, docs, a conformance sweep, SPEC 1.0 | `reference/service`: a refused first install leaves no unit; `service/rotate.ts` | G1/G2 in progress; G3 |
+
+## Deliberate local differences
+
+Where a tool departs from a SPEC line on purpose. Each is recorded in the tool's own decisions, and the conformance
+runner doesn't check any of them.
+
+| Tool | SPEC says | The tool does | Why |
+|---|---|---|---|
+| Hallway | §7: the service writes one `<home>/logs/service.log` | The daemon writes `<home>/logs/daemon.out.log` and `daemon.err.log`, rotated by Hallway; `service logs` reads both, `status --json`'s `log` names the out file (D74) | §7's point, that `logs` reads files the tool writes on every OS, already holds, Windows included, where Hallway's supervisor writes them. Moving them would break `hallway logs daemon`, `doctor` and the rotation, and re-render every installed unit, for nothing a reader would notice |
+| BragDoc | §7: `<home>/logs/service.log` | `<data home>/service/bragdoc.log`, rotated at 10 MB by copy and truncate (D85) | macOS installs already logged there before the contract. One file the tool writes, on every OS, holds; only the path is BragDoc's own, and moving it would split an existing install's log across two files until it's reinstalled |
 
 The table below is the survey this plan started from, on 4 November.
 
