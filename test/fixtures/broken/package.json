@@ -1,0 +1,9 @@
+{
+  "name": "@fixtures/broken",
+  "version": "0.9.0",
+  "private": true,
+  "type": "module",
+  "description": "A CLI that gets the contract wrong in every checked way, for the runner's tests.",
+  "bin": { "fixture-broken": "cli.js", "fixture-broken-helper": "cli.js" },
+  "files": ["cli.js"]
+}

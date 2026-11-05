@@ -1,0 +1,9 @@
+{
+  "name": "fixture-good",
+  "version": "1.2.3",
+  "private": true,
+  "type": "module",
+  "description": "A CLI that follows the contract, for the runner's tests.",
+  "bin": { "fixture-good": "cli.js" },
+  "files": ["cli.js"]
+}

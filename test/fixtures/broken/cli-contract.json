@@ -1,0 +1,26 @@
+{
+  "name": "Fixture Broken",
+  "bin": "fixture-broken",
+  "timeoutMs": 3000,
+  "serve": {
+    "args": [
+      "serve",
+      "--port",
+      "{port}"
+    ],
+    "timeoutMs": 5000
+  },
+  "checks": {
+    "version": true,
+    "help": true,
+    "unknown-flag": true,
+    "service-status": true,
+    "service-status-json": true,
+    "busy": {
+      "skip": "not until wave C"
+    },
+    "busy-json": true,
+    "serve-banner": true,
+    "serve-health": true
+  }
+}

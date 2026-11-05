@@ -1,0 +1,16 @@
+{
+  "$schema": "../schemas/cli-contract.schema.json",
+  "name": "Localidraw",
+  "serve": { "args": ["{tmp}", "--port", "{port}"] },
+  "checks": {
+    "version": true,
+    "help": true,
+    "unknown-flag": { "skip": "0.4 says \"(see --help)\" rather than printing the usage; E1 of the rollout" },
+    "service-status": { "skip": "no `service` command until E2" },
+    "service-status-json": { "skip": "no `service` command until E2" },
+    "busy": { "skip": "no `busy` command until E3" },
+    "busy-json": { "skip": "no `busy` command until E3" },
+    "serve-banner": true,
+    "serve-health": true
+  }
+}

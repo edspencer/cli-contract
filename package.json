@@ -42,7 +42,8 @@
     "test": "node --import tsx --test test/*.test.ts",
     "prepack": "npm run build",
     "changeset": "changeset",
-    "changeset:version": "changeset version && npm install --package-lock-only --ignore-scripts"
+    "changeset:version": "changeset version && npm install --package-lock-only --ignore-scripts",
+    "smoke:pack": "node scripts/smoke-pack.mjs"
   },
   "devDependencies": {
     "@changesets/changelog-github": "^1.0.1",

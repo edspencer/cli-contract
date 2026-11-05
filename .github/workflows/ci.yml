@@ -37,6 +37,9 @@ jobs:
         run: npm run build
       - name: Tests
         run: npm test
+      # Packs the package, installs the tarball into a temp prefix and runs it against the conforming fixture.
+      - name: Smoke-test the npm package
+        run: npm run smoke:pack
 
   # One stable check name to require in the ruleset, so the matrix can change without editing it.
   ci-passed:
