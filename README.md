@@ -36,7 +36,8 @@ npx cli-conformance --package localidraw@latest --config cli-contract.json   # a
 In CI, after the build: `- run: npx cli-conformance`.
 
 Each tool keeps a `cli-contract.json` at its root, saying which checks apply and why any don't. Every check must be
-listed, so a new check in a newer runner fails until the tool says whether it applies.
+listed, so a new check in a newer runner fails until the tool says whether it applies. The `update` checks are the
+exception: they're opt-in (below).
 
 ```json
 {
@@ -69,6 +70,48 @@ listed, so a new check in a newer runner fails until the tool says whether it ap
 | `busy-json` | `busy --json` exits 3 and prints one document matching `schemas/busy.schema.json`, with `running` false |
 | `serve-banner` | `serve`'s first stdout line is `<name> <version>: <url>` |
 | `serve-health` | `GET <url>/api/health` answers 200 with `{ "ok": true, "version": "<version>" }` |
+
+### The update checks (opt-in)
+
+A tool with `update` lists these too. Unlisted, they're neither run nor reported. They need a network to the real
+registry only for the tool's dependencies.
+
+The runner makes two more builds from the installed copy of the tool (its files, with every `package.json` whose
+version is the tool's bumped): **B**, a minor higher, and **C**, a patch above B, whose `serve` exits at once. A local
+registry serves all three, and sends every other package to the real one. npm's prefix, cache and registry are the
+runner's own, and the runner checks that `npm root -g` is inside its temporary folder before anything installs.
+
+| Check | Passes when |
+|---|---|
+| `update-up-to-date` | with `latest` at this version, `update --yes` exits 0 and installs nothing |
+| `update-check-json` | with `latest` at B, `update --check --json` exits 0 with one document matching `schemas/update-check.schema.json` (B available, `npm-global`, `canUpdate`), and installs nothing |
+| `update-no-tty` | `update` without `--yes` exits 2, with `<bin>: …` and then the usage on stderr |
+| `update-busy` | with a stand-in instance whose `/api/busy` says busy, found through `update.runtimeFile`, `update --yes` exits 75 and installs nothing |
+| `update-npx` | run from a copy under `…/_npx/<hash>/node_modules`, `update --yes` exits 5 |
+| `update-checkout` | run from a copy outside any `node_modules`, `update --yes` exits 5 |
+| `update-not-writable` | with the global folder read-only, `update --yes` exits 5 and prints a command with `sudo` (skipped as root, and on Windows) |
+| `update` | `update --yes` exits 0, and the installed bin then says B |
+| `update-to-lower` | at B with `latest` at A, `update --yes` stays at B; `update --yes --to A` goes to A |
+| `update-service` | with the service installed (`update.serviceInstall`) at A, `update --yes` exits 0, B answers `/api/health` on its port, and `service status --json` agrees |
+| `update-rollback` | the same, to C: it exits 6, and A is installed and answering again |
+
+`update-service` and `update-rollback` install the tool's real service, under the real home, so they run only where
+**`CI_REAL_SERVICE=1` and `CI`** are set: a CI runner's real-service job. Elsewhere they're skipped, saying why.
+
+```json
+"update": {
+  "runtimeFile": "{home}/.local-review/runtime.json",
+  "serviceInstall": ["service", "install", "--port", "{port}"],
+  "timeoutMs": 300000
+}
+```
+
+- **`update.runtimeFile`** is where the tool looks for its `runtime.json` (SPEC §4), for `update-busy`.
+- **`update.serviceInstall`** installs the service on a free `{port}` (this is the default). The runner then asks
+  `http://127.0.0.1:{port}/api/health`, and runs `service uninstall` afterwards whatever happened.
+- **`update.timeoutMs`** bounds each `update` (default 300 000).
+
+### Settings
 
 - **`serve.args`** start the tool in the foreground (default `["serve", "--port", "{port}"]`). `{port}` is a free
   port, also given as `PORT`; `{home}` is the throwaway home and `{tmp}` a scratch folder (the commands' working

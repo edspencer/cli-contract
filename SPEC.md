@@ -1,6 +1,6 @@
 # The CLI contract
 
-Version 0.1, a draft. It covers the lifecycle around running one of Ed's local tools: running it, installing it as a
+Version 0.2, a draft. It covers the lifecycle around running one of Ed's local tools: running it, installing it as a
 service, looking at it, checking it, and updating it. What each tool does is its own business. Releasing (changesets,
 npm trusted publishing) is shared already and isn't covered here.
 
@@ -15,6 +15,7 @@ prefix (`PADDOCK`, `LOCAL_REVIEW`), and `<home>` is its data home (`~/.paddock`,
 ```
 <tool> [serve] [args]                    run in the foreground (the default with no command)
 <tool> service install [options]         write the unit, enable it, start it, wait until it answers
+<tool> service install --refresh         re-render the installed unit with the settings it records
 <tool> service uninstall                 stop it, disable it, remove the unit; keep data and logs
 <tool> service start                     start the installed service; wait until it answers
 <tool> service stop [--force]            stop it until `service start` or the next login or boot
@@ -36,20 +37,33 @@ prefix (`PADDOCK`, `LOCAL_REVIEW`), and `<home>` is its data home (`~/.paddock`,
   has a command's name is reached as `./service`.
 - `--open` should open the page in a browser once it's listening.
 
+### Flags belong to their commands
+
+A flag that a command can't act on is a usage error (exit 2), not something parsed and dropped: `--force` on
+`service start`, `--check` on `busy`, `--refresh` on `service status`. A script that passes `--force` to the wrong
+command learns so, rather than finding later that nothing was forced.
+
 ### `service`
 
 The word is singular. With no further argument it means the tool's own service. A tool that manages other services
 (Hallway's apps) may add sub-commands of its own beside these.
 
 - **`install`** must be idempotent. A reinstall must keep the port and environment it finds in the existing unit,
-  unless options say otherwise. It must refuse to run:
+  unless options say otherwise, and must replace a running service, not leave the old process serving
+  (`systemctl --user enable --now` doesn't restart a unit that's already active, so restart it then). It must refuse
+  to run:
   - from an npx, pnpm dlx, bunx or yarn dlx cache;
   - from a checkout, unless `--from-checkout` is given;
   - when a process that isn't this tool holds the port.
   It should take `--dry-run`, which prints the unit and writes nothing.
+- **`install --refresh`** re-renders the installed unit in this CLI's format, from the settings the unit records
+  (port, host, data home, options), not from the invoking shell's flags and environment. Flags given with it still
+  win. With nothing installed it exits 4, rather than doing a first install with defaults. It's what `update` runs
+  through the new CLI (§5 step 11).
 - **`uninstall`** must keep the data home and the logs.
 - **`start`** must wait until `/api/health` answers, and print the last 20 log lines if it doesn't within the
-  tool's timeout.
+  tool's timeout. On Linux it should clear a failed state first (`systemctl --user reset-failed`): a unit that hit
+  systemd's start limit stays failed until then.
 - **`stop`** follows the service managers' own convention. The service stays stopped until `service start`, or the
   next login or boot, whichever comes first. That's what `systemctl --user stop` and `launchctl bootout` of a
   LaunchAgent do. `stop` must not disable the unit. To keep it off for good, use `service uninstall`.
@@ -58,7 +72,9 @@ The word is singular. With no further argument it means the tool's own service. 
 - **`stop`** and **`restart`** must run the busy check (§4) and refuse with exit 75 unless `--force` is given.
   `uninstall` doesn't check: removing the service is an explicit act.
 - **`status`** must report whether it's installed, running and answering; the installed version and the running
-  version; the port, URL and pid; the unit's file; the log file; and warnings (a stale unit, a missing Node).
+  version; the port, URL and pid; the unit's file; the log file; and warnings (a stale unit, a missing Node). It may
+  repeat the last update check (§3); in `--json` that's `update`, which is left out, never null, when there's
+  nothing to repeat.
 - **`logs`** must read a file the tool writes itself, on every OS (§7).
 
 ### `update`
@@ -128,10 +144,11 @@ It should add the tool's own checks. Each line starts `✓`, `!` or `✗`, and a
 - **Errors** go to stderr as `<tool>: <message>`. A refusal says what to do next.
 - **Colour** appears only on a TTY, honours `NO_COLOR` and `FORCE_COLOR`, and stays mostly in `serve`'s banner.
 - **Prompts** appear only on a TTY. Without one, a command that would ask needs `--yes`, or exits 2 and says so.
-- **`serve`'s first stdout line** is `<Name> <version>: <url>`. `--quiet` (`-q`) prints only that line.
+- **`serve`'s first stdout line** is `<Name> <version>: <url>`, even on a first run: logs, first-run notices and
+  banner art go to stderr, or after it. `--quiet` (`-q`) prints only that line.
 - **The update notice** goes to stderr, and only from a command that has just asked the registry: `update --check` and
   `doctor`. `service status` may repeat what the last of those found, which is cached in `<home>/update-check.json`.
-  It never asks the registry itself.
+  It never asks the registry itself, and says nothing once the cache is about another version than the one installed.
 
   ```
   Paddock 0.80.0 is available (you have 0.79.1).
@@ -168,6 +185,11 @@ GET /api/busy
   caller. Once it's settled, a caller that has proved it's local may also get `reasons` (one line each, for a person:
   what the work is and since when) and `notes` (worth saying, but not a reason to wait).
 - **It must be cheap.** It reads in-memory state, never walks the disk, and answers in well under a second.
+- **It must not need auth**, like `/api/health`: it says nothing but counts.
+- **The CLI finds the instance through `<home>/runtime.json`**, `{ pid, port, url, version, startedAt }`, which
+  `serve` writes (0600, atomically) once it's listening and removes on a clean exit. A file whose pid has gone is
+  ignored. When the server is bound to a wildcard address, `url` names loopback. The CLI never guesses a default
+  port: that would ask whatever else is listening there.
 - **The CLI's rules:**
   - Nothing answering means "not running": `busy` exits 3, and an update may go ahead.
   - A busy answer refuses with exit 75 and says what's running.
@@ -182,7 +204,8 @@ What counts as busy, for each tool, is in [ROADMAP.md](ROADMAP.md#busy-per-tool)
 1. **Lock.** Create `<home>/update.lock` with `O_EXCL`, holding the pid. A live lock refuses with exit 1; a stale one
    is removed.
 2. **How was it installed?** (§6.) If this install can't update itself, print the notice with the right command and
-   exit 5.
+   exit 5. The refusal waits until step 4 has the target, which the notice names, so an install that's already up
+   to date still exits 0, and `--check` reports instead of refusing.
 3. **What's current?** Read the current version from our own `package.json`. Then ask the registry with Node's
    `fetch` and `AbortSignal.timeout(10_000)`:
    - for the target, `latest` or `--to`: `GET <registry>/-/package/<name>/dist-tags`, with a scoped name's `/` written
@@ -196,7 +219,7 @@ What counts as busy, for each tool, is in [ROADMAP.md](ROADMAP.md#busy-per-tool)
    - If the target's `engines.node` rejects this Node, exit 1 and name the Node it needs.
    - A lower version needs `--to`.
 
-   `--check` stops here and reports.
+   `--check` stops here and reports. Whatever the answer, write it to `<home>/update-check.json` (§3).
 5. **Can we write there?** If the global folder isn't writable, exit 5 and print the command with `sudo`. Never run
    `sudo`.
 6. **Busy?** If an instance answers, ask `/api/busy`. If it's busy and `--force` wasn't given, exit 75. This happens
@@ -206,7 +229,7 @@ What counts as busy, for each tool, is in [ROADMAP.md](ROADMAP.md#busy-per-tool)
 8. **Fetch first.** Run `npm cache add <name>@<target>` and `npm cache add <name>@<current>`. A network failure then
    happens while the old version is still serving, and the rollback has the old package to hand.
 9. **Stop.** Stop the service. If someone is running a foreground `serve`, ask them to stop it, and exit 3 if it still
-   answers. Wait until the port is free. Stopping comes before installing for two reasons:
+   answers. Wait until the port is free: on macOS, `launchctl bootout` returns before the job has gone (§7). Stopping comes before installing for two reasons:
    - npm moves the old package aside before unpacking the new one, so a running server would lazily load files that
      are gone;
    - on Windows, a loaded native addon can't be replaced at all.
@@ -227,7 +250,9 @@ What counts as busy, for each tool, is in [ROADMAP.md](ROADMAP.md#busy-per-tool)
 14. **Migrated data.** A tool whose new version changes its data on boot must first copy what it changes to
     `<home>/backups/pre-<version>/`. A rollback that meets data the old version refuses doesn't restore anything
     automatically: it exits 7 and names the backup.
-15. **Done.** Print `Updated Paddock 0.79.1 → 0.80.0. Running at <url>`, remove the lock, and exit 0.
+15. **Done.** Rewrite `<home>/update-check.json` to say there's nothing to do (otherwise `status` goes on
+    advertising the version that's now installed), print `Updated Paddock 0.79.1 → 0.80.0. Running at <url>`, remove
+    the lock, and exit 0.
 
 **Without a service** (someone runs `serve` by hand), `update` does steps 1 to 8 and step 10. If an instance is
 running, it then says `Restart Paddock to use 0.80.0`.
@@ -285,7 +310,17 @@ Don't use `/.dockerenv` to detect Docker. Dev containers have it too, and a glob
 - on Linux, `StandardOutput=append:` and `StandardError=append:` name it, rather than using the journal;
 - on Windows, the supervisor writes it.
 
-So `logs` is one Node implementation everywhere. The tool rotates its own log.
+So `logs` is one Node implementation everywhere. The tool rotates its own log, by copying it and then truncating it:
+the service manager holds the file open, so it has to stay the same file.
+
+**Stopping and starting.**
+
+- **launchd:** `launchctl bootout` returns once launchd has accepted the request, not once the job has gone, and a
+  `bootstrap` straight after it fails with exit 5 (`EIO`). After a bootout, poll `launchctl print gui/<uid>/<label>`
+  until it fails (with a limit), and retry a bootstrap that fails with 5 or 37 ("operation already in progress")
+  a few times, a short pause apart. The retry covers a bootout another process issued.
+- **systemd:** `enable --now` starts a stopped unit and leaves an active one alone, so an `install` over a running
+  service restarts it, but only then: systemd allows five starts in ten seconds.
 
 **Linger.** On Linux, `install` and `doctor` must check `loginctl show-user $USER -p Linger`. If it's off, they print
 `sudo loginctl enable-linger <user>` and why: without it, the service stops when you log out. Never run `sudo`.
@@ -294,8 +329,9 @@ So `logs` is one Node implementation everywhere. The tool rotates its own log.
 
 - paths use `node:path`, never a literal `/`;
 - logs are files, not the journal;
-- process control goes through a small `ServiceManager` interface (`install`, `remove`, `start`, `stop`, `restart`,
-  `status`), with launchd, systemd and, later, Task Scheduler behind it;
+- process control goes through a small `ServiceManager` interface (`install`, `uninstall`, `start`, `stop`,
+  `restart`, `status`, `linger`), with launchd, systemd and, later, Task Scheduler behind it
+  ([reference/service/](reference/service/));
 - a clean stop must not depend on SIGTERM alone, because Windows has no SIGTERM (Hallway's supervisor shows one way);
 - spawning `npm.cmd` needs `shell: true` and careful quoting, since Node's fix for CVE-2024-27980;
 - `update` stops every process running from the package before npm runs, because Windows can't replace a loaded file.
@@ -331,4 +367,14 @@ So `logs` is one Node implementation everywhere. The tool rotates its own log.
 
 The version at the top says which this is. A minor version adds something a tool must now do; a patch changes wording.
 
+- **0.2** (5 November 2026), from what waves B to D found. Every tool:
+  - `service install --refresh` (§1), which `update` runs through the new CLI.
+  - A flag on a command that can't act on it exits 2 (§1).
+  - `install` replaces a running service (systemd's `enable --now` doesn't), and on macOS a bootout is waited for and
+    a bootstrap that fails with 5 or 37 is retried (§1, §7). `start` should clear systemd's failed state.
+  - `serve`'s first line is first even on a first run (§3); `/api/busy` needs no auth, and `runtime.json` is how the
+    CLI finds the instance (§4).
+  - `update` refuses with 5 only once it has a target, writes `update-check.json` at step 4 and again when it's done,
+    and `status --json` leaves `update` out rather than null (§1, §3, §5).
+  - Wording: the `ServiceManager` interface's names, and log rotation by copy and truncate (§7).
 - **0.1** (4 November 2026): the first draft.
