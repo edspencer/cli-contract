@@ -1,5 +1,11 @@
 # @edspencer/cli-conformance
 
+## 0.2.1
+
+### Patch Changes
+
+- [#9](https://github.com/edspencer/cli-contract/pull/9) [`2cf2bc2`](https://github.com/edspencer/cli-contract/commit/2cf2bc23b30d560f0fc76452ee097ca0ec0de0a5) Thanks [@edspencer](https://github.com/edspencer)! - The package now ships SPEC 1.0. Nothing a tool must do changed from 0.2; the wording of §5 "Without a service" now matches step 9 (a foreground `serve` that's answering makes `update` exit 3 before it installs), and §7 says that when `loginctl` can't answer, `install` prints nothing about linger and `doctor` reports the check as skipped. `reference/service/index.ts`'s `lingerAdvice` follows: it returns nothing unless linger is off.
+
 ## 0.2.0
 
 ### Minor Changes
