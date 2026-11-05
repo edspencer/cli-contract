@@ -4,6 +4,7 @@ import type { ChildProcess } from 'node:child_process';
 import { describeExitCode, EXIT } from '../reference/exit-codes.ts';
 import { formatErrors, loadSchema, validate } from './schema.ts';
 import type { RunResult } from './proc.ts';
+import { UPDATE_CHECK_IDS, UPDATE_CHECK_TITLES, type UpdateCheckId } from './update-checks.ts';
 
 export const CHECK_IDS = [
   'version',
@@ -17,9 +18,10 @@ export const CHECK_IDS = [
   'serve-health',
 ] as const;
 
-export type CheckId = (typeof CHECK_IDS)[number];
+/** The checks every tool lists. The `update` checks (update-checks.ts) are opt-in. */
+export type CoreCheckId = (typeof CHECK_IDS)[number];
 
-export const CHECK_TITLES: Record<CheckId, string> = {
+export const CORE_CHECK_TITLES: Record<CoreCheckId, string> = {
   version: '`--version` and `-v` print the bare version (SPEC §1)',
   help: '`--help` and `-h` print usage and exit 0 (SPEC §1)',
   'unknown-flag': 'an unknown flag exits 2, with `<tool>: <message>` and then the usage on stderr (SPEC §2, §3)',
@@ -30,6 +32,16 @@ export const CHECK_TITLES: Record<CheckId, string> = {
   'serve-banner': "`serve`'s first stdout line is `<Name> <version>: <url>` (SPEC §3)",
   'serve-health': '`serve` answers `/api/health` with `{ ok: true, version }` (SPEC §8)',
 };
+
+export type CheckId = CoreCheckId | UpdateCheckId;
+
+/** Every check, in the order they run. */
+export const ALL_CHECK_IDS: readonly CheckId[] = [...CHECK_IDS, ...UPDATE_CHECK_IDS];
+
+/** Checks a tool may leave out of cli-contract.json: they're not run, and not reported. */
+export const OPT_IN_CHECKS: ReadonlySet<CheckId> = new Set(UPDATE_CHECK_IDS);
+
+export const CHECK_TITLES: Record<CheckId, string> = { ...CORE_CHECK_TITLES, ...UPDATE_CHECK_TITLES };
 
 export type Status = 'pass' | 'fail' | 'skip';
 
@@ -112,7 +124,7 @@ function matchesSchema(doc: unknown, schema: string, args: string[]): Verdict | 
 
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-export const CHECKS: Record<CheckId, (ctx: CheckContext) => Promise<Verdict>> = {
+export const CHECKS: Record<CoreCheckId, (ctx: CheckContext) => Promise<Verdict>> = {
   async version(ctx) {
     for (const flag of ['--version', '-v']) {
       const r = await ctx.run([flag]);

@@ -1,7 +1,8 @@
 // `cli-contract.json`: which checks apply to a tool, and why any don't.
 
 import fs from 'node:fs';
-import { CHECK_IDS, type CheckId } from './checks.ts';
+import { ALL_CHECK_IDS, type CheckId } from './checks.ts';
+import type { UpdateConfig } from './update-checks.ts';
 import { formatErrors, loadSchema, validate } from './schema.ts';
 
 export type CheckSetting = true | { skip: string };
@@ -23,6 +24,8 @@ export interface Config {
   /** How long each command may take before it's killed. Default 15 s. */
   timeoutMs?: number;
   serve?: ServeConfig;
+  /** Settings for the opt-in `update` checks. */
+  update?: UpdateConfig;
   checks: Partial<Record<CheckId, CheckSetting>>;
 }
 
@@ -41,8 +44,8 @@ export function parseConfig(text: string, file: string): Config {
   if (errors.length) throw new ConfigError(`${file} doesn't match the schema: ${formatErrors(errors)}`);
   const config = doc as Config;
   for (const id of Object.keys(config.checks)) {
-    if (!CHECK_IDS.includes(id as CheckId)) {
-      throw new ConfigError(`${file} lists a check this runner doesn't have: "${id}". The checks are: ${CHECK_IDS.join(', ')}.`);
+    if (!ALL_CHECK_IDS.includes(id as CheckId)) {
+      throw new ConfigError(`${file} lists a check this runner doesn't have: "${id}". The checks are: ${ALL_CHECK_IDS.join(', ')}.`);
     }
   }
   for (const [id, s] of Object.entries(config.checks)) {

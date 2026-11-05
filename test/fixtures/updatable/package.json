@@ -1,0 +1,17 @@
+{
+  "name": "fixture-updatable",
+  "version": "2.4.6",
+  "description": "A conforming CLI built on the reference code, with update: the runner's update checks run against it.",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "fixture-updatable": "cli.js"
+  },
+  "files": [
+    "cli.js",
+    "lib/"
+  ],
+  "engines": {
+    "node": ">=22"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  // Compiles reference/ alone, for the test fixture that's built on it (test/update-runner.test.ts gives --outDir).
+  "extends": "./tsconfig.build.json",
+  "compilerOptions": {
+    "rootDir": "reference",
+    "outDir": "dist/reference-only"
+  },
+  "include": ["reference"]
+}
