@@ -326,3 +326,9 @@ So `logs` is one Node implementation everywhere. The tool rotates its own log.
    carefully, and until it is, `/api/busy` returns counts only.
 2. **Updating from inside the service** (§5): a web UI button, or an agent asked to update the tool it runs in.
 3. **Windows** (§7): Task Scheduler for the five tools that don't have it yet.
+
+## Changelog
+
+The version at the top says which this is. A minor version adds something a tool must now do; a patch changes wording.
+
+- **0.1** (4 November 2026): the first draft.

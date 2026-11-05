@@ -11,3 +11,23 @@
   and the version they came from. The conformance package is a devDependency.
 - **Don't rule Windows out** (SPEC §7), even though it's a later priority.
 - Personal, machine-specific rules go in a git-ignored `CLAUDE.local.md`.
+
+## Layout
+
+- `SPEC.md`: the contract, with its version at the top and a changelog at the bottom.
+- `reference/`: the code tools copy (`exit-codes.ts`, …), each with tests in `test/`.
+- `schemas/`: JSON schemas for the `--json` output the spec requires.
+- `src/`: the conformance runner, published as `@edspencer/cli-conformance` from this repo's root
+  ([RELEASING.md](RELEASING.md)).
+
+## Commands
+
+```sh
+npm ci
+npm run typecheck
+npm run build      # dist/ (tsc)
+npm test           # node:test via tsx
+npm run changeset  # for a change users of the npm package would notice (CONTRIBUTING.md)
+```
+
+`CI passed` must be green to merge (a ruleset requires it). The orchestrator merges "chore: version packages" PRs.
