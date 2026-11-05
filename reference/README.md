@@ -21,6 +21,7 @@ Code the tools copy into their own repos (SPEC.md, AGENTS.md). Node built-ins on
 | `service/systemd.ts` | Linux: the unit, escaping, `enable --now` then a restart if it was active, linger | §7 |
 | `service/spec.ts`, `service/path-env.ts` | `<home>/service`, `<home>/logs/service.log`, the realpath'd spec, the service's PATH | §7 |
 | `service/logs.ts` | `logs`: the last lines, and following through a rotation | §1, §7 |
+| `service/rotate.ts` | Rotating `service.log` by copy and truncate, at boot and on an unref'd timer (from Paddock) | §7 |
 | `service/index.ts` | The manager for this OS (Windows throws, for now), and the linger advice | §7 |
 
 Copy a file whole, and start it with:
