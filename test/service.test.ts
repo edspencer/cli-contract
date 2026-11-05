@@ -59,7 +59,7 @@ test('the spec realpaths Node and the script, and puts the log and working folde
     scriptPath: '/usr/local/bin/tool',
     args: ['serve', '--port', '7000'],
     home: '/h/.tool',
-    pathEnv: '/x/fnm_multishells/123_4/bin:/usr/bin',
+    pathEnv: ['/x/fnm_multishells/123_4/bin', '/usr/bin'].join(path.delimiter),
     realpath: (p) => (p === '/usr/local/bin/node' ? '/opt/node/bin/node' : '/usr/local/lib/node_modules/tool/dist/cli.js'),
     exists: () => true,
     systemDirs: ['/bin'],

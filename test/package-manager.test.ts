@@ -30,7 +30,7 @@ test("finds the npm beside this Node and runs it with this Node, without a shell
   const posix = npmCommand({
     execPath: '/opt/node/bin/node',
     platform: 'linux',
-    exists: (p) => p === '/opt/node/bin/npm',
+    exists: (p) => p === path.join('/opt/node/bin', 'npm'),
     realpath: () => '/opt/node/lib/node_modules/npm/bin/npm-cli.js',
   });
   assert.deepEqual(posix, { cmd: '/opt/node/bin/node', pre: ['/opt/node/lib/node_modules/npm/bin/npm-cli.js'], shell: false });
