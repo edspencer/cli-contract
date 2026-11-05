@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/edspencer/cli-contract/blob/main/schemas/update-check.schema.json",
+  "title": "<tool> update --check --json",
+  "description": "SPEC §5, steps 1 to 4, reported. Exits 0 whether or not there's an update: scripts read `updateAvailable`.",
+  "type": "object",
+  "required": ["name", "current", "target", "updateAvailable", "installMethod", "canUpdate"],
+  "properties": {
+    "name": { "type": "string", "description": "The npm package's name." },
+    "current": { "type": "string", "description": "This CLI's version, from its package.json." },
+    "target": { "type": "string", "description": "The version `latest` (or `--to`) resolves to." },
+    "tag": { "type": ["string", "null"], "description": "The dist-tag asked for, or null when --to named a version." },
+    "updateAvailable": { "type": "boolean", "description": "target is newer than current." },
+    "installMethod": {
+      "enum": ["docker", "managed", "npx", "checkout", "npm-global", "pnpm-global", "bun-global", "volta", "yarn-global", "dependency"],
+      "description": "SPEC §6."
+    },
+    "canUpdate": { "type": "boolean", "description": "Whether `update` would install it itself (false means it exits 5)." },
+    "command": { "type": ["string", "null"], "description": "What to run: `<tool> update`, or the right command when this install can't update itself." },
+    "engines": { "type": ["string", "null"], "description": "The target's engines.node." },
+    "nodeOk": { "type": "boolean", "description": "This Node satisfies the target's engines.node." },
+    "changelog": { "type": ["string", "null"], "pattern": "^https://" },
+    "checkedAt": { "type": "string" }
+  }
+}

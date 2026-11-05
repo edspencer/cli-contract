@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/edspencer/cli-contract/blob/main/schemas/busy.schema.json",
+  "title": "<tool> busy --json",
+  "description": "SPEC §4. `running` false means no instance answered (exit 3). Otherwise `busy` and the counts are what /api/busy said (exit 75 if busy, 0 if not). Counts only, until SPEC §10's first question is settled.",
+  "type": "object",
+  "required": ["running", "busy"],
+  "properties": {
+    "running": { "type": "boolean" },
+    "busy": { "type": "boolean" },
+    "url": { "type": "string", "pattern": "^https?://" },
+    "version": { "type": "string" },
+    "counts": {
+      "type": "object",
+      "description": "For each kind of work (the tool's own: chat, job, import, save), how many are under way.",
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    },
+    "error": { "type": "string", "description": "Something answered, but not with a busy answer (exit 1)." }
+  }
+}
