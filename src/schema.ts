@@ -27,6 +27,7 @@ const KNOWN = new Set([
   '$ref',
   'if',
   'then',
+  'anyOf',
 ]);
 
 export function validate(schema: Schema, value: unknown): SchemaError[] {
@@ -41,6 +42,7 @@ export function assertSupported(schema: unknown, where = '#'): void {
   for (const [k, v] of Object.entries(schema)) {
     if (!KNOWN.has(k)) throw new Error(`${where}: the validator doesn't support "${k}"`);
     if (k === 'properties' || k === '$defs') for (const [p, s] of Object.entries(v as object)) assertSupported(s, `${where}/${k}/${p}`);
+    else if (k === 'anyOf') (v as unknown[]).forEach((s, i) => assertSupported(s, `${where}/anyOf/${i}`));
     else if (k === 'items' || k === 'if' || k === 'then' || (k === 'additionalProperties' && typeof v === 'object')) assertSupported(v, `${where}/${k}`);
   }
 }
@@ -69,6 +71,16 @@ function resolveRef(root: Schema, ref: string): Schema {
 function check(root: Schema, s: Schema, v: unknown, path: string, errors: SchemaError[]): void {
   const at = path || '/';
   if (typeof s.$ref === 'string') check(root, resolveRef(root, s.$ref), v, path, errors);
+  if (Array.isArray(s.anyOf)) {
+    const branches = (s.anyOf as Schema[]).map((b) => {
+      const e: SchemaError[] = [];
+      check(root, b, v, path, e);
+      return e;
+    });
+    if (!branches.some((e) => e.length === 0)) {
+      errors.push({ path: at, message: `matches none of the allowed forms (${branches.map(formatErrors).join(' | ')})` });
+    }
+  }
   if (s.type !== undefined) {
     const types = Array.isArray(s.type) ? (s.type as string[]) : [s.type as string];
     if (!types.some((t) => matchesType(v, t))) {

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/edspencer/cli-contract/blob/main/schemas/cli-contract.schema.json",
+  "title": "cli-contract.json",
+  "description": "A tool's settings for @edspencer/cli-conformance: which checks apply, and why any don't. Every check the runner has must be listed.",
+  "type": "object",
+  "required": ["name", "checks"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "name": { "type": "string", "description": "The product's name, as serve's first line says it: `Local Review`." },
+    "bin": { "type": "string", "description": "Which bin to run, when the package has more than one." },
+    "timeoutMs": { "type": "integer", "minimum": 1000, "description": "How long each command may take. Default 15000." },
+    "env": {
+      "type": "object",
+      "description": "Extra environment for every command; null removes a variable. {home} and {tmp} are filled in.",
+      "additionalProperties": { "type": ["string", "null"] }
+    },
+    "serve": {
+      "type": "object",
+      "required": ["args"],
+      "additionalProperties": false,
+      "properties": {
+        "args": { "type": "array", "items": { "type": "string" }, "description": "Starts it in the foreground. {port}, {home} and {tmp} are filled in." },
+        "timeoutMs": { "type": "integer", "minimum": 1000, "description": "How long to wait for the first line and /api/health. Default 30000." }
+      }
+    },
+    "checks": {
+      "type": "object",
+      "additionalProperties": {
+        "anyOf": [
+          { "const": true },
+          {
+            "type": "object",
+            "required": ["skip"],
+            "additionalProperties": false,
+            "properties": { "skip": { "type": "string", "description": "Why this check doesn't apply yet." } }
+          }
+        ]
+      }
+    }
+  }
+}

@@ -26,6 +26,7 @@ CI runs these on Node 22 and 24, on Linux, macOS and Windows. Run them before yo
 npm run typecheck
 npm run build
 npm test
+npm run smoke:pack    # pack, install into a temp prefix, run it against the conforming fixture
 ```
 
 ## The rules

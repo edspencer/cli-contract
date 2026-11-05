@@ -7,7 +7,7 @@ import { busyJson } from '../reference/busy-client.ts';
 const names = fs.readdirSync(new URL('../schemas/', import.meta.url)).map((f) => f.replace(/\.schema\.json$/, ''));
 
 test('there is a schema for each --json the spec requires', () => {
-  assert.deepEqual(names.sort(), ['busy', 'doctor', 'service-status', 'update-check']);
+  assert.deepEqual(names.sort(), ['busy', 'cli-contract', 'doctor', 'service-status', 'update-check']);
 });
 
 for (const name of names) {

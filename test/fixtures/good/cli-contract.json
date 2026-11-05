@@ -1,0 +1,16 @@
+{
+  "$schema": "../../../schemas/cli-contract.schema.json",
+  "name": "Fixture Good",
+  "serve": { "args": ["serve", "--port", "{port}"] },
+  "checks": {
+    "version": true,
+    "help": true,
+    "unknown-flag": true,
+    "service-status": true,
+    "service-status-json": true,
+    "busy": true,
+    "busy-json": true,
+    "serve-banner": true,
+    "serve-health": true
+  }
+}
