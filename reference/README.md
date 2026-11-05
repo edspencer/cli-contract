@@ -30,6 +30,10 @@ Copy a file whole, and start it with:
 // From edspencer/cli-contract reference/<file> @ <spec version>; local changes: none
 ```
 
+`<spec version>` is the SPEC version at the top of `SPEC.md` when the file was copied (`1.0`), and a copy whose header
+names an older version than that is due a look. "Local changes" lists everything that differs from the file here,
+renamed examples in comments included, so a diff against `reference/` shows nothing the header doesn't explain.
+
 Copy a file's imports with it. `update.ts` imports `exit-codes`, `output` (a type), `health`, `install-method`, `lock`
 (and through it `runtime-file`), `package-manager`, `registry`, `semver` and `update-check`; `service/` is a folder of
 its own, needing nothing outside it. A tool keeps its own names, its busy check and its service commands, and gives them to `update.ts` as an

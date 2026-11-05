@@ -1,6 +1,6 @@
 # The CLI contract
 
-Version 0.2, a draft. It covers the lifecycle around running one of Ed's local tools: running it, installing it as a
+Version 1.0. It covers the lifecycle around running one of Ed's local tools: running it, installing it as a
 service, looking at it, checking it, and updating it. What each tool does is its own business. Releasing (changesets,
 npm trusted publishing) is shared already and isn't covered here.
 
@@ -254,8 +254,10 @@ What counts as busy, for each tool, is in [ROADMAP.md](ROADMAP.md#busy-per-tool)
     advertising the version that's now installed), print `Updated Paddock 0.79.1 → 0.80.0. Running at <url>`, remove
     the lock, and exit 0.
 
-**Without a service** (someone runs `serve` by hand), `update` does steps 1 to 8 and step 10. If an instance is
-running, it then says `Restart Paddock to use 0.80.0`.
+**Without a service** (someone runs `serve` by hand, or nobody does), `update` does steps 1 to 10, then says
+`Updated Paddock 0.79.1 → 0.80.0` and exits 0. Step 9 still applies: a foreground `serve` that's answering can't be
+stopped from here, so `update` asks for it to be stopped and exits 3, before anything is installed. Run it again once
+that terminal's `serve` has stopped, then start it again on the new version.
 
 **Update runs from a terminal, never from inside the service.** An updater started by the service, such as a web UI
 button or an agent the service is running, dies when the service stops:
@@ -323,7 +325,8 @@ the service manager holds the file open, so it has to stay the same file.
   service restarts it, but only then: systemd allows five starts in ten seconds.
 
 **Linger.** On Linux, `install` and `doctor` must check `loginctl show-user $USER -p Linger`. If it's off, they print
-`sudo loginctl enable-linger <user>` and why: without it, the service stops when you log out. Never run `sudo`.
+`sudo loginctl enable-linger <user>` and why: without it, the service stops when you log out. When `loginctl` can't
+answer, `install` prints nothing about linger, and `doctor` reports the check as skipped. Never run `sudo`.
 
 **Keeping Windows possible.** Windows is a later priority (P3), and nothing built before it may rule it out:
 
@@ -367,6 +370,16 @@ the service manager holds the file open, so it has to stay the same file.
 
 The version at the top says which this is. A minor version adds something a tool must now do; a patch changes wording.
 
+- **1.0** (5 November 2026). Nothing a tool must do changed since 0.2; all six tools meet it, and the conformance
+  runner checks it in each one's CI. Wording only:
+  - §5 "Without a service" now agrees with step 9: a foreground `serve` that answers makes `update` exit 3 before it
+    installs, rather than installing and then asking for a restart. Every tool already did this (it's the reference's
+    behaviour).
+  - §7 says what linger looks like when `loginctl` can't answer: nothing from `install`, a skipped check from
+    `doctor`. `reference/service/index.ts`'s `lingerAdvice` used to print a hedged line then; it now prints nothing,
+    as Hallway, Local Review and BragDoc already did.
+  - §10's questions stay open. Answering them adds to the contract (a minor version), and doesn't change what 1.0
+    asks of a tool.
 - **0.2** (5 November 2026), from what waves B to D found. Every tool:
   - `service install --refresh` (§1), which `update` runs through the new CLI.
   - A flag on a command that can't act on it exits 2 (§1).
