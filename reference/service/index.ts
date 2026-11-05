@@ -32,13 +32,13 @@ export function serviceManagerFor(id: ServiceIdentity, o: ManagerOptions = {}): 
 }
 
 /**
- * The linger line (SPEC §7), only for the people it applies to: nothing on macOS, nothing when it's on. When the check
- * couldn't answer, it says what happens rather than claiming linger is off.
+ * The linger line (SPEC §7), only for the people it applies to: nothing on macOS, nothing when it's on, and nothing
+ * when loginctl couldn't answer. `install` says only what it knows; `doctor` reports a check it couldn't make as
+ * skipped.
  */
 export function lingerAdvice(linger: LingerState, name: string): string | undefined {
-  if (!linger.applies || linger.enabled === true) return undefined;
-  const head = linger.enabled === false ? 'Linger is off, so the service stops when you log out' : "Couldn't ask loginctl about linger. Without it, a user service stops when you log out";
-  return `${head}, SSH sessions included. To keep ${name} running, once:\n    sudo loginctl enable-linger ${linger.user ?? '$USER'}`;
+  if (!linger.applies || linger.enabled !== false) return undefined;
+  return `Linger is off, so the service stops when you log out, SSH sessions included. To keep ${name} running, once:\n    sudo loginctl enable-linger ${linger.user ?? '$USER'}`;
 }
 
 export * from './manager.ts';
