@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/edspencer/cli-contract/blob/main/schemas/service-status.schema.json",
+  "title": "<tool> service status --json",
+  "description": "SPEC §1 `status`: whether the service is installed, running and answering; the installed and running versions; the port, URL and pid; the unit's file; the log file; and warnings. A tool may add fields of its own.",
+  "type": "object",
+  "required": ["installed", "running", "answering", "installedVersion", "runningVersion", "port", "url", "pid", "unit", "log", "warnings"],
+  "properties": {
+    "installed": { "type": "boolean", "description": "The unit file exists." },
+    "running": { "type": "boolean", "description": "The service manager says it's running." },
+    "answering": { "type": "boolean", "description": "/api/health answered." },
+    "installedVersion": { "type": ["string", "null"], "description": "The version of the CLI the unit runs, or null if not installed." },
+    "runningVersion": { "type": ["string", "null"], "description": "The version /api/health reports, or null if nothing answers." },
+    "port": { "type": ["integer", "null"], "minimum": 1, "maximum": 65535 },
+    "url": { "type": ["string", "null"], "pattern": "^https?://" },
+    "pid": { "type": ["integer", "null"], "minimum": 1 },
+    "unit": { "type": ["string", "null"], "description": "The unit's file: a .plist or .service path." },
+    "log": { "type": ["string", "null"], "description": "The log file, <home>/logs/service.log (SPEC §7)." },
+    "warnings": { "type": "array", "items": { "type": "string" }, "description": "A stale unit, a missing Node, …" },
+    "busy": {
+      "description": "What /api/busy said, if the tool asked it.",
+      "type": "object",
+      "required": ["busy"],
+      "properties": {
+        "busy": { "type": "boolean" },
+        "counts": { "$ref": "#/$defs/counts" }
+      }
+    },
+    "update": {
+      "description": "What the last `update --check` or `doctor` found, from <home>/update-check.json. `service status` never asks the registry itself.",
+      "type": "object",
+      "required": ["latest", "updateAvailable", "checkedAt"],
+      "properties": {
+        "latest": { "type": "string" },
+        "updateAvailable": { "type": "boolean" },
+        "checkedAt": { "type": "string" }
+      }
+    }
+  },
+  "$defs": {
+    "counts": {
+      "type": "object",
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    }
+  }
+}

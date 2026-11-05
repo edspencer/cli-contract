@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/edspencer/cli-contract/blob/main/schemas/doctor.schema.json",
+  "title": "<tool> doctor --json",
+  "description": "SPEC §1 `doctor`: one entry per check, in the order printed. `ok` is false, and the exit code 1, if any check failed; warnings don't change either.",
+  "type": "object",
+  "required": ["ok", "checks"],
+  "properties": {
+    "ok": { "type": "boolean" },
+    "version": { "type": "string" },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "status", "message"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$",
+            "description": "Stable, for scripts. The spec's own: node-engines, install-method, unit, running-version, port, linger, data-home, update. A tool's own checks use their own ids."
+          },
+          "status": { "enum": ["pass", "warn", "fail", "skip"], "description": "✓, !, ✗; skip for a check that doesn't apply (linger off Linux, update with --offline)." },
+          "message": { "type": "string" },
+          "fix": { "type": "string", "description": "What to do about it. Every fail has one." }
+        },
+        "if": { "properties": { "status": { "const": "fail" } } },
+        "then": { "required": ["fix"] }
+      }
+    }
+  }
+}
