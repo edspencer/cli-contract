@@ -3,9 +3,10 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { CHECK_IDS, CHECK_TITLES, CHECKS, type CheckContext, type CheckId, type CheckResult, type ServeSession } from './checks.ts';
+import { ALL_CHECK_IDS, CHECK_TITLES, CHECKS, OPT_IN_CHECKS, type CheckContext, type CheckId, type CheckResult, type CoreCheckId, type ServeSession } from './checks.ts';
 import type { Config } from './config.ts';
 import { freePort, killTree, npm, run, start } from './proc.ts';
+import { createUpdateRig, REAL_SERVICE_CHECKS, UPDATE_CHECKS, type UpdateCheckId, type UpdateRig } from './update-checks.ts';
 
 export type Source =
   /** A checkout: `npm pack` it (which runs its `prepack`), then install the tarball. */
@@ -112,9 +113,10 @@ export async function runConformance(o: RunnerOptions): Promise<Report> {
   for (const d of [dirs.home, dirs.tmp, prefix]) fs.mkdirSync(d, { recursive: true });
   const npmEnv: NodeJS.ProcessEnv = { ...process.env, npm_config_update_notifier: 'false', npm_config_fund: 'false', npm_config_audit: 'false' };
   let serveSession: Promise<ServeSession> | null = null;
+  let updateRig: Promise<UpdateRig> | null = null;
 
   try {
-    let spec: string;
+    let spec = '';
     let sourceLabel: string;
     if (o.source.kind === 'dir') {
       const dir = path.resolve(o.source.path);
@@ -159,11 +161,37 @@ export async function runConformance(o: RunnerOptions): Promise<Report> {
       serve: () => (serveSession ??= startServe(binFile, o.config, dirs, env, serveTimeoutMs)),
     };
 
+    const updateCtx = {
+      bin,
+      name: o.config.name,
+      config: o.config,
+      dirs,
+      serveTimeoutMs,
+      rig: () =>
+        (updateRig ??= createUpdateRig({
+          work,
+          prefix,
+          root,
+          binFile: file,
+          name: pkg.name,
+          version: pkg.version,
+          source: spec,
+          config: o.config,
+          dirs,
+          sandbox: env,
+          base: process.env,
+          log,
+        }).catch((err: Error) => {
+          throw new SetupError(`couldn't set up the update checks: ${err.message}`);
+        })),
+    };
+
     const results: CheckResult[] = [];
-    for (const id of CHECK_IDS) {
+    for (const id of ALL_CHECK_IDS) {
       if (o.only && !o.only.includes(id)) continue;
       const setting = o.config.checks[id];
       const title = CHECK_TITLES[id];
+      if (setting === undefined && OPT_IN_CHECKS.has(id)) continue;
       if (setting === undefined) {
         results.push({
           id,
@@ -173,10 +201,25 @@ export async function runConformance(o: RunnerOptions): Promise<Report> {
         });
       } else if (setting !== true) {
         results.push({ id, title, status: 'skip', message: setting.skip });
+      } else if (REAL_SERVICE_CHECKS.has(id) && process.env.CI_REAL_SERVICE !== '1') {
+        results.push({ id, title, status: 'skip', message: 'needs a real service manager: it runs where CI_REAL_SERVICE=1 (a CI runner)' });
+      } else if (REAL_SERVICE_CHECKS.has(id) && !process.env.CI) {
+        results.push({
+          id,
+          title,
+          status: 'fail',
+          message: "CI_REAL_SERVICE=1 installs the tool's service under this user's real home, so it also needs CI set: use it on a CI runner",
+        });
       } else {
+        // `serve` is stopped first: a running instance would make `update` refuse, or answer for the service.
+        if (OPT_IN_CHECKS.has(id) && serveSession) {
+          await stopServe(await serveSession);
+          serveSession = null;
+        }
         log(`Checking ${id}…`);
         try {
-          results.push({ id, title, ...(await CHECKS[id](ctx)) });
+          const verdict = OPT_IN_CHECKS.has(id) ? await UPDATE_CHECKS[id as UpdateCheckId](updateCtx) : await CHECKS[id as CoreCheckId](ctx);
+          results.push({ id, title, ...verdict });
         } catch (err) {
           results.push({ id, title, status: 'fail', message: `the check itself failed: ${(err as Error).message}` });
         }
@@ -195,6 +238,7 @@ export async function runConformance(o: RunnerOptions): Promise<Report> {
     };
   } finally {
     if (serveSession) await stopServe(await serveSession);
+    if (updateRig) await updateRig.then((r) => r.close(), () => {});
     if (!o.keep) fs.rmSync(work, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
   }
 }

@@ -5,7 +5,8 @@ import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { EXIT } from '../reference/exit-codes.ts';
 import { createOutput, exitQuietlyOnEpipe, reportUsageError, UsageError, type Output } from '../reference/output.ts';
-import { CHECK_IDS, type CheckId } from './checks.ts';
+import { ALL_CHECK_IDS, CHECK_IDS, type CheckId } from './checks.ts';
+import { UPDATE_CHECK_IDS } from './update-checks.ts';
 import { ConfigError, readConfig } from './config.ts';
 import { formatReport } from './report.ts';
 import { runConformance, runnerPackage, SetupError, type Source } from './runner.ts';
@@ -27,6 +28,7 @@ Options:
   -h, --help          print this
 
 Checks: ${CHECK_IDS.join(', ')}
+Opt-in (update): ${UPDATE_CHECK_IDS.join(', ')}
 
 Exit codes: 0 every check passed or was skipped, 1 a check failed or the tool couldn't be
 installed, 2 a usage or cli-contract.json error.
@@ -74,7 +76,7 @@ export async function main(argv: string[], out: Output | null = null): Promise<n
     }
     const only = values.only?.split(',').map((s) => s.trim()).filter(Boolean);
     for (const id of only ?? []) {
-      if (!CHECK_IDS.includes(id as CheckId)) throw new UsageError(`--only: no check named "${id}"`);
+      if (!ALL_CHECK_IDS.includes(id as CheckId)) throw new UsageError(`--only: no check named "${id}"`);
     }
 
     const config = readConfig(values.config ? path.resolve(values.config) : path.join(dir, 'cli-contract.json'));

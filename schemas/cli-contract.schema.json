@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/edspencer/cli-contract/blob/main/schemas/cli-contract.schema.json",
   "title": "cli-contract.json",
-  "description": "A tool's settings for @edspencer/cli-conformance: which checks apply, and why any don't. Every check the runner has must be listed.",
+  "description": "A tool's settings for @edspencer/cli-conformance: which checks apply, and why any don't. Every check the runner has must be listed, apart from the opt-in update checks.",
   "type": "object",
   "required": ["name", "checks"],
   "additionalProperties": false,
@@ -23,6 +23,16 @@
       "properties": {
         "args": { "type": "array", "items": { "type": "string" }, "description": "Starts it in the foreground. {port}, {home} and {tmp} are filled in." },
         "timeoutMs": { "type": "integer", "minimum": 1000, "description": "How long to wait for the first line and /api/health. Default 30000." }
+      }
+    },
+    "update": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Settings for the opt-in update checks.",
+      "properties": {
+        "runtimeFile": { "type": "string", "description": "Where the tool looks for its runtime.json, for update-busy: {home}/.tool/runtime.json. {home} and {tmp} are filled in." },
+        "serviceInstall": { "type": "array", "items": { "type": "string" }, "description": "How update-service and update-rollback install the service. Default [\"service\", \"install\", \"--port\", \"{port}\"]." },
+        "timeoutMs": { "type": "integer", "minimum": 1000, "description": "How long each update command may take. Default 300000." }
       }
     },
     "checks": {
