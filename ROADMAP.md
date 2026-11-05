@@ -7,27 +7,61 @@ to five days.
 
 ## Progress, by wave
 
-From the rollout plan (`CLI-ROLLOUT.md` on the dev box). As of 5 November 2026:
+From the rollout plan (`CLI-ROLLOUT.md` on the dev box). **The rollout finished on 5 November 2026, with SPEC 1.0.**
 
-| Wave | What | Done | Next |
-|---|---|---|---|
-| A | This repo: the spec, `reference/` foundations, the schemas, the runner | all (runner 0.1.0) | |
-| B | Alignment: health, exit codes, `serve`, `status --json`, `logs`, units | Paddock (0.80.0), Hallway (0.11.0), Local Review (0.14.0), BragDoc (0.3.0) | Managers in F |
-| C | Paddock's busy check and `update`; then `update` into `reference/` | C1 busy (0.81.0), C2 `update` (0.82.0), C4 `reference/` update and service, runner update checks, SPEC 0.2 (runner 0.2.0) | C3: Ed dogfoods `paddock update` |
-| D | busy (a), then `update` and `doctor` (b), from the reference | D1a/D1b Hallway, D2a/D2b Local Review, D3a/D3b BragDoc | |
-| E | Localidraw | E1 commands and SIGTERM (0.5.0), E2 `service` (0.6.0), E3 busy, `update`, `doctor` | |
-| F | Managers | | F1 to F4 |
-| G | `doctor` everywhere, the §1 "should"s, docs, a conformance sweep, SPEC 1.0 | `reference/service`: a refused first install leaves no unit; `service/rotate.ts` | G1/G2 in progress; G3 |
+| Wave | What | Done |
+|---|---|---|
+| A | This repo: the spec, `reference/` foundations, the schemas, the runner | ✓ (runner 0.1.0) |
+| B | Alignment: health, exit codes, `serve`, `status --json`, `logs`, units | ✓ Paddock 0.80.0, Hallway 0.11.0, Local Review 0.14.0, BragDoc 0.3.0 |
+| C | Paddock's busy check and `update`; then `update` into `reference/` | ✓ C1 busy (0.81.0), C2 `update` (0.82.0), C4 `reference/` update and service, the runner's update checks, SPEC 0.2 (runner 0.2.0). C3, Ed dogfooding `paddock update` on his laptop, is still to come |
+| D | busy (a), then `update` and `doctor` (b), from the reference | ✓ Hallway 0.12.0–0.13.0, Local Review 0.15.0–0.16.0, BragDoc 0.4.0–0.5.0 |
+| E | Localidraw: commands and SIGTERM, `service`, busy, `update`, `doctor` | ✓ 0.5.0, 0.6.0, 0.7.0 |
+| F | Managers: alignment, busy and SIGTERM, `update` and `doctor`, the Ansible role | ✓ Managers 0.4.0; the role is [homelab-infra#371](https://github.com/edspencer/homelab-infra/pull/371), for Ed |
+| G | `doctor` everywhere, the §1 "should"s, docs, the sweep, SPEC 1.0 | ✓ G1/G2 (Paddock 0.83.0, Hallway 0.14.0, Local Review 0.17.0, Localidraw 0.8.0, BragDoc's next release); G3: SPEC 1.0, `lingerAdvice`, the headers, Managers' §1 musts |
+
+### Where each tool stands at SPEC 1.0
+
+All six list all 20 of the runner's checks in `cli-contract.json` with none skipped, run `@edspencer/cli-conformance`
+0.2.0 in CI (the two real-service checks in their real-service jobs), and head every copied `reference/` file
+`@ 1.0`. "Published" is what `npx <package>@latest` answered on 5 November, in a throwaway home and npm prefix:
+`--version` bare, `busy` 3, `service status` 4, the three `--json` documents valid against `schemas/`, and `update`
+refusing with 5 from npx and under `<TOOL>_IN_DOCKER=1`.
+
+| Tool | Release | Commands | Real-service CI | Reference copies (all `@ 1.0`) | Published | Differences |
+|---|---|---|---|---|---|---|
+| Paddock | 0.83.0 | all; `start` alias | launchd, systemd | 17: `update`, `service/` managers, busy, output, runtime file | ✓ 0.83.0; the image's `update` exits 5 with the pull command | `logs --json` |
+| Managers | 0.4.0; §1's three musts (checkout and port refusals, reinstall keeps settings) and the "should"s land in the next release (managers#24) | all; `start` alias | launchd, systemd | 17, as Paddock | ✓ 0.4.0; the image's `update` exits 5 | `logs --json`; no docs site (`UPDATING.md`) |
+| Hallway | 0.14.0 | all, plus app services | launchd, systemd, Task Scheduler | 21: `update`, busy, output, runtime file | ✓ 0.14.0 (no image) | two daemon logs (D74); `logs --json` |
+| Local Review | 0.17.0 | all | launchd, systemd | 23: `update`, busy, output, runtime file, `rotate.ts` | ✓ 0.17.0 (no image) | `logs --json` |
+| BragDoc | 0.5.0 (`latest`); 0.6.0 pending on `next` | all | launchd, systemd | 20: `update` (with `egress.ts` fetch), busy | ✓ 0.5.0; the image's `update` exits 5 | log path (D85); `logs --json` |
+| Localidraw | 0.8.0 | all; `serve [folder]` | launchd, systemd | 20: all of `reference/`, verbatim | ✓ 0.8.0; the image's `update` exits 5 | `logs --json` |
+
+**Still to come (Later, not part of 1.0):** the busy endpoint's auth design (§10.1), updating from inside the service
+(§10.2), and Windows' `ServiceManager` in `reference/service/` for the five tools that don't have Windows yet (§10.3,
+P3).
 
 ## Deliberate local differences
 
-Where a tool departs from a SPEC line on purpose. Each is recorded in the tool's own decisions, and the conformance
-runner doesn't check any of them.
+Where a tool departs from a SPEC line on purpose. Hallway's and BragDoc's are recorded in their own decisions, the
+last row is recorded here for all six, and the conformance runner doesn't check any of them.
 
 | Tool | SPEC says | The tool does | Why |
 |---|---|---|---|
 | Hallway | §7: the service writes one `<home>/logs/service.log` | The daemon writes `<home>/logs/daemon.out.log` and `daemon.err.log`, rotated by Hallway; `service logs` reads both, `status --json`'s `log` names the out file (D74) | §7's point, that `logs` reads files the tool writes on every OS, already holds, Windows included, where Hallway's supervisor writes them. Moving them would break `hallway logs daemon`, `doctor` and the rotation, and re-render every installed unit, for nothing a reader would notice |
 | BragDoc | §7: `<home>/logs/service.log` | `<data home>/service/bragdoc.log`, rotated at 10 MB by copy and truncate (D85) | macOS installs already logged there before the contract. One file the tool writes, on every OS, holds; only the path is BragDoc's own, and moving it would split an existing install's log across two files until it's reinstalled |
+| All six | §1: `--json` should be on the other `service` commands | `service logs --json` exits 2 | A log is a stream of lines, and `-f` never ends, so there's no one document to print. Every other `service` command takes `--json` |
+
+**Not departures, but worth knowing when you compare the copies:**
+- Paddock and Managers keep their own `service/spec.ts`, `service/index.ts` and `service/ready.ts` (the commands around
+  the `ServiceManager`), and their own `service-log.ts` rotation, which `reference/service/rotate.ts` was lifted from.
+- Hallway, Local Review and BragDoc keep their own service code (Hallway's has Windows), and copy only the `update`
+  files and `busy-client.ts`. Local Review also copies `rotate.ts`. BragDoc's copies route `fetch` through its
+  `egress.ts` (D9's amendment), and their headers list that.
+- Localidraw copies all of `reference/`, verbatim.
+- Hallway and Local Review ship no Docker image, so §9's image lines don't apply to them. `<TOOL>_IN_DOCKER=1` still
+  gets the pull command.
+- Managers has no docs site: its `UPDATING.md` and `--help` carry what the others' "Updating" and "Running as a
+  service" pages do.
 
 The table below is the survey this plan started from, on 4 November.
 
