@@ -1,0 +1,54 @@
+{
+  "name": "@edspencer/cli-conformance",
+  "version": "0.0.1",
+  "description": "Black-box conformance checks for the CLI contract that Ed's local tools share: --version, --help, exit codes, service status, busy and serve.",
+  "keywords": [
+    "cli",
+    "conformance",
+    "contract",
+    "exit-codes"
+  ],
+  "homepage": "https://github.com/edspencer/cli-contract#readme",
+  "bugs": {
+    "url": "https://github.com/edspencer/cli-contract/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/edspencer/cli-contract.git"
+  },
+  "license": "MIT",
+  "author": "Ed Spencer",
+  "type": "module",
+  "bin": {
+    "cli-conformance": "dist/src/cli.js"
+  },
+  "files": [
+    "dist/",
+    "reference/",
+    "schemas/",
+    "SPEC.md",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "node -e \"fs.rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "node --import tsx --test test/*.test.ts",
+    "prepack": "npm run build",
+    "changeset": "changeset",
+    "changeset:version": "changeset version && npm install --package-lock-only --ignore-scripts"
+  },
+  "devDependencies": {
+    "@changesets/changelog-github": "^1.0.1",
+    "@changesets/cli": "^3.0.3",
+    "@types/node": "^22.20.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}
