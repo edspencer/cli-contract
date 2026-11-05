@@ -1,6 +1,6 @@
 {
   "name": "@edspencer/cli-conformance",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Black-box conformance checks for the CLI contract that Ed's local tools share: --version, --help, exit codes, service status, busy and serve.",
   "keywords": [
     "cli",
